@@ -3,6 +3,8 @@ Feed Seeker
 ===========
 *It slant rhymes with "heat seeker"*
 
+|Build Status| |Coverage|
+
 A library for finding atom, rss, rdf, and xml feeds from web pages. Produced at the `mediacloud <https://mediacloud.org>`_ project. An incremental improvement over `feedfinder2 <https://github.com/dfm/feedfinder2>`_, which was itself based on `feedfinder <http://www.aaronsw.com/2002/feedfinder/>`_, written by Mark Pilgrim, and maintained by Aaron Swartz until his untimely death. 
 
 Quickstart
@@ -24,3 +26,8 @@ Differences with :code:`feedfinder2`
 The biggest difference is that all functions are implemented as generators, and are evaluated lazily. Candidate feed links are actually accessed and inspected to determine whether or not they are a feed, which can be quite time consuming. We expose a function to find the most likely feed link, and another to lazily generate links in rough order from most prominent to least.
 
 There are also a few more heuristics based on our experience at `mediacloud <https://mediacloud.org>`_.
+
+.. |Build Status| image:: https://travis-ci.org/ColCarroll/feed_seeker.png?branch=master
+   :target: https://travis-ci.org/ColCarroll/feed_seeker
+.. |Coverage| image:: https://coveralls.io/repos/github/ColCarroll/feed_seeker/badge.svg?branch=master
+   :target: https://coveralls.io/github/ColCarroll/feed_seeker?branch=master
