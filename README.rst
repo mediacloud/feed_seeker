@@ -17,6 +17,15 @@ The library uses :code:`requests` to grab html and inspect it:
    list(generate_feed_urls('http://xkcd.com'))  # ['http://xkcd.com/atom.xml', 
                                                 #  'http://xkcd.com/rss.xml']
 
+Installation
+------------
+
+The library is not yet available on PyPI, so installation is via github only for now:
+
+.. code-block:: bash
+
+    pip install git+https://github.com/ColCarroll/date_guesser
+                                                  
 
 
 Differences with :code:`feedfinder2`
