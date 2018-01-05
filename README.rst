@@ -26,7 +26,7 @@ The library is not yet available on PyPI, so installation is via github only for
 
 .. code-block:: bash
 
-    pip install git+https://github.com/ColCarroll/date_guesser
+    pip install git+https://github.com/ColCarroll/feed_seeker
                                                   
 
 
