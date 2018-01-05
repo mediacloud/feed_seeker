@@ -1,0 +1,13 @@
+sudo: false
+language: python
+python:
+  - "3.5"
+  - "3.6"
+install:
+  - pip install .
+  - pip install -r requirements-dev.txt
+  - pip install coveralls
+script:
+  - py.test -v --cov=feed_seeker test/
+after_success:
+  - coveralls
