@@ -13,19 +13,19 @@ By default, the library uses :code:`requests` to grab html and inspect it and fi
 likely feed url:
 
 .. code-block:: python
-   
-   from feed_seeker import find_feed_url
 
-   >>> find_feed_url('https://github.com/ColCarroll/feed_seeker') 
-   'https://github.com/ColCarroll/feed_seeker/commits/master.atom'
+    from feed_seeker import find_feed_url
+
+    >>> find_feed_url('https://github.com/ColCarroll/feed_seeker') 
+    'https://github.com/ColCarroll/feed_seeker/commits/master.atom'
 
 
 To do a more thorough search, use :code:`generate_feed_urls`, which returns more likely candidates first.
 
 .. code-block:: python
 
-   from feed_seeker import generate_feed_urls
-
+    from feed_seeker import generate_feed_urls
+    
     >>> for url in generate_feed_urls('https://xkcd.com'):
     ...     print(url)
     ... 
@@ -33,9 +33,7 @@ To do a more thorough search, use :code:`generate_feed_urls`, which returns more
     https://xkcd.com/rss.xml
 
 
- For the most thorough search, add a :code:`spider` argument to do depth-first spidering of urls
- on the same hostname. Note the below call takes nearly four minutes, compared to 0.5 seconds for
- :code:`find_feed_url`.
+For the most thorough search, add a :code:`spider` argument to do depth-first spidering of urls on the same hostname. Note the below call takes nearly four minutes, compared to 0.5 seconds for :code:`find_feed_url`.
 
 
 .. code-block:: python
