@@ -2,7 +2,7 @@
 
 See https://github.com/dfm/feedfinder2 for other approaches to the same task.
 """
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 import requests
@@ -142,10 +142,7 @@ class FeedSeeker(object):
 
     @property
     def html(self):
-        """String of the html of the underlying site.
-
-        If the fetcher encounters a ConnectionError, it will return an empty string.
-        """
+        """String of the html of the underlying site."""
         if self._html is None:
             self._html = self.fetcher(self.url)
         return self._html
@@ -156,6 +153,10 @@ class FeedSeeker(object):
         if self._soup is None:
             self._soup = BeautifulSoup(self.html, 'lxml')
         return self._soup
+
+    def clean_url(self):
+        parsed = urlparse(self.url)
+        return urlunparse(parsed._replace(query=''))
 
     def generate_feed_urls(self):
         """Generates an iterator of possible feeds, in rough order of likelihood."""
@@ -210,7 +211,7 @@ class FeedSeeker(object):
         for link in self.soup.find_all('link', type=valid_types):
             url = link.get('href')
             if url:
-                link_tags.append(urljoin(base=self.url, url=url))
+                link_tags.append(urljoin(base=self.clean_url(), url=url))
         return link_tags
 
     def find_anchor_feeds(self):
@@ -227,7 +228,7 @@ class FeedSeeker(object):
             for link in self.soup.find_all('a', href=True):
                 url = link.get('href')
                 if url not in seen and url_filter(url):
-                    yield urljoin(base=self.url, url=url)
+                    yield urljoin(base=self.clean_url(), url=url)
                     seen.add(url)
 
     def guess_feed_links(self):
@@ -249,7 +250,7 @@ class FeedSeeker(object):
             'articles.rss', 'articles.atom',  # Patch.com RSS feeds
         )
         for suffix in suffixes:
-            yield '/'.join([self.url, suffix])
+            yield '/'.join([self.clean_url(), suffix])
 
 
 def find_feed_url(url, html=None):
