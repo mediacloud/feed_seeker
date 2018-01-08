@@ -256,14 +256,15 @@ class FeedSeeker(object):
         parsed_url = urlparse(self.clean_url())
         parts = set(filter(None, parsed_url.path.split('/')))
         possible_links = []
-        for link_node in self.soup.find_all('a', href=True):
-            link = link_node.get('href')
-            parsed_link = urlparse(link)
-            if parsed_link.hostname == parsed_url.hostname:
-                might_be_feed = any(check(link) for check in (_is_feed_url, _might_be_feed_url))
-                link_parts = set(filter(None, parsed_link.path.split('/')))
-                similarity = len(parts.intersection(link_parts)) + might_be_feed * len(parts)
-                possible_links.append((link, similarity))
+        for node in ('link', 'a'):
+            for link_node in self.soup.find_all(node, href=True):
+                link = link_node.get('href')
+                parsed_link = urlparse(link)
+                if parsed_link.hostname == parsed_url.hostname or not parsed_link.hostname:
+                    might_be_feed = any(check(link) for check in (_is_feed_url, _might_be_feed_url))
+                    link_parts = set(filter(None, parsed_link.path.split('/')))
+                    similarity = len(parts.intersection(link_parts)) + might_be_feed * len(parts)
+                    possible_links.append((link, similarity))
         return [link for link, _ in sorted(set(possible_links), key=lambda j: (-j[1], len(j[0])))]
 
 

@@ -43,7 +43,7 @@ class TestFeedSeeker(object):
     def generate_responses(self):
         feeds = (
             '/get_your_news_here.html',  # will be found in <head>
-            '/atom.rss',  # will be found in <body>
+            '{}/atom.rss'.format(self.base_url),  # will be found in <body>
             '/index.xml',  # hidden!  will still get spotted
         )
 
@@ -57,6 +57,7 @@ class TestFeedSeeker(object):
             head=self.rss_feed_template.format(feeds[0]),
             body='<a href="{}"></a>'.format(feeds[1])
         )
+        print(html)
 
         assert feeds[0] in html
         assert feeds[1] in html
@@ -65,8 +66,9 @@ class TestFeedSeeker(object):
         responses.add(responses.GET, self.base_url, body=html, status=200)
 
         for feed in feeds:
-            responses.add(responses.GET, self.base_url + feed,
-                          body=self.regular_feed_page, status=200)
+            if not feed.startswith(self.base_url):
+                feed = self.base_url + feed
+            responses.add(responses.GET, feed, body=self.regular_feed_page, status=200)
 
         for feed in non_feeds:
             responses.add(responses.GET, self.base_url + feed,
@@ -137,6 +139,12 @@ class TestFeedSeeker(object):
         finder = feed_seeker.FeedSeeker(self.base_url, html=html)
         assert len(list(finder.find_link_feeds())) == 0
         assert len(list(finder.find_anchor_feeds())) == num_feeds
+
+    def test_find_internal_links(self):
+        _ = self.generate_responses()
+        finder = feed_seeker.FeedSeeker(self.base_url, html=None)
+        internal_links = finder.find_internal_links()
+        assert len(internal_links) == 2 # from `self.generate_responses`
 
     def test_guess_feed_links(self):
         # even empty page has some guesses
