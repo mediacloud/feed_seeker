@@ -6,6 +6,8 @@ from urllib.parse import urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 
 def _is_feed_url(url):
@@ -97,8 +99,12 @@ def default_fetch_function(url):
         Text of the html from the url
     """
 
+    session = requests.Session()
+
+    retries = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    session.mount(url, HTTPAdapter(max_retries=retries))
     try:
-        response = requests.get(url)
+        response = session.get(url)
         if response.ok:
             return response.text
         else:
@@ -168,8 +174,6 @@ class FeedSeeker(object):
         ----------
         spider : int (optional)
               How many times to restart the seeker on links with the same hostname on this page
-        seen : set
-            (Optional) list of urls to not produce. May be used as a blacklist.
 
         Yields
         ------
@@ -202,13 +206,17 @@ class FeedSeeker(object):
         if not self.html:
             return
 
-        if self.is_feed():
+        if self.is_feed() and self.url not in seen:
+            seen.add(self.url)
             yield self.url, seen
+            return
 
         for url_fn in (self.find_link_feeds, self.find_anchor_feeds, self.guess_feed_links):
-            for url in filter_to_feeds(filter(lambda url: url not in seen, url_fn())):
-                seen.add(url)
-                yield url, seen
+            for url in url_fn():
+                if url not in seen:
+                    seen.add(url)
+                    if FeedSeeker(url).is_feed():
+                        yield url, seen
 
         if spider > 0:
             for internal_link in self.find_internal_links():
@@ -261,12 +269,10 @@ class FeedSeeker(object):
             "application/x-atom+xml"
         ]
 
-        link_tags = []
         for link in self.soup.find_all('link', type=valid_types):
             url = link.get('href')
             if url:
-                link_tags.append(urljoin(base=self.clean_url(), url=url))
-        return link_tags
+                yield urljoin(base=self.clean_url(), url=url)
 
     def find_internal_links(self):
         """Finds <a></a> tags to internal pages on the same domain that may have a feed.
@@ -297,16 +303,13 @@ class FeedSeeker(object):
         for example
             <a href="https://www.whatever.com/rss"></a>
         """
-        seen = set()
-
         # This is outer loop so that most likely links
         # are produced first
         for url_filter in (_is_feed_url, _might_be_feed_url):
             for link in self.soup.find_all('a', href=True):
                 url = link.get('href')
-                if url not in seen and url_filter(url):
+                if url_filter(url):
                     yield urljoin(base=self.clean_url(), url=url)
-                    seen.add(url)
 
     def guess_feed_links(self):
         """Iterates common locations to find feeds.  These urls probably do not exist, but might
@@ -327,7 +330,7 @@ class FeedSeeker(object):
             'articles.rss', 'articles.atom',  # Patch.com RSS feeds
         )
         for suffix in suffixes:
-            yield '/'.join([self.clean_url(), suffix])
+            yield urljoin(base=self.clean_url(), url=suffix)
 
 
 def find_feed_url(url, html=None, spider=0):

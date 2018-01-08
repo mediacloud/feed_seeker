@@ -138,7 +138,7 @@ class TestFeedSeeker(object):
         html = self.regular_html_template.format(head='', body='\n'.join(feed_urls))
         finder = feed_seeker.FeedSeeker(self.base_url, html=html)
         assert len(list(finder.find_link_feeds())) == 0
-        assert len(list(finder.find_anchor_feeds())) == num_feeds
+        assert len(set(finder.find_anchor_feeds())) == num_feeds
 
     def test_find_internal_links(self):
         _ = self.generate_responses()
