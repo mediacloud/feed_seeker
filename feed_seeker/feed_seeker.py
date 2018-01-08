@@ -103,7 +103,9 @@ def default_fetch_function(url):
             return response.text
         else:
             return ''
-    except requests.ConnectionError:
+
+    # ConnectionError for 404s, InvalidSchema for email addresses
+    except (requests.ConnectionError, requests.exceptions.InvalidSchema):
         return ''
 
 
@@ -155,11 +157,24 @@ class FeedSeeker(object):
         return self._soup
 
     def clean_url(self):
+        """Remove query arguments from a url."""
         parsed = urlparse(self.url)
         return urlunparse(parsed._replace(query=''))
 
-    def generate_feed_urls(self):
-        """Generates an iterator of possible feeds, in rough order of likelihood."""
+    def generate_feed_urls(self, spider=0, seen=None):
+        """Generates an iterator of possible feeds, in rough order of likelihood.
+
+        Parameters
+        ----------
+        spider : int (optional)
+              How many times to restart the seeker on links with the same hostname on this page
+        seen : set
+            (Optional) list of urls to not produce. May be used as a blacklist.
+
+        Yields
+        ------
+            urls of possible feeds
+        """
         if not self.html:
             return
 
@@ -167,17 +182,36 @@ class FeedSeeker(object):
             yield self.url
             return
 
-        seen = set()
+        if seen is None:
+            seen = set()
         for url_fn in (self.find_link_feeds, self.find_anchor_feeds, self.guess_feed_links):
             for url in filter_to_feeds(url_fn()):
                 if url not in seen:
                     seen.add(url)
                     yield url
 
-    def find_feed_url(self):
-        """Fine the single most likely url as a feed for the page, or None."""
+        if spider > 0:
+            for url in self.find_internal_links():
+                spider_seeker = FeedSeeker(url, html=None, fetcher=self.fetcher)
+                yield from spider_seeker.generate_feed_urls(spider=spider-1, seen=seen)
+
+
+    def find_feed_url(self, spider=0):
+        """Fine the single most likely url as a feed for the page, or None.
+
+        Parameters
+        ----------
+        spider : int (optional)
+              How many times to restart the seeker on links with the same hostname on this page
+
+        Returns
+        -------
+        str
+            The most likely url to have a feed for this page
+        """
+
         try:
-            return next(self.generate_feed_urls())
+            return next(self.generate_feed_urls(spider=spider))
         except StopIteration:
             return None
 
@@ -213,6 +247,25 @@ class FeedSeeker(object):
             if url:
                 link_tags.append(urljoin(base=self.clean_url(), url=url))
         return link_tags
+
+    def find_internal_links(self):
+        """Finds <a></a> tags to internal pages on the same domain that may have a feed.
+
+        For example, this may find the homepage, or an index page.
+        """
+        parsed_url = urlparse(self.clean_url())
+        parts = set(filter(None, parsed_url.path.split('/')))
+        possible_links = []
+        for link_node in self.soup.find_all('a', href=True):
+            link = link_node.get('href')
+            parsed_link = urlparse(link)
+            if parsed_link.hostname == parsed_url.hostname:
+                might_be_feed = any(check(link) for check in (_is_feed_url, _might_be_feed_url))
+                link_parts = set(filter(None, parsed_link.path.split('/')))
+                similarity = len(parts.intersection(link_parts)) + might_be_feed * len(parts)
+                possible_links.append((link, similarity))
+        return [link for link, _ in sorted(set(possible_links), key=lambda j: (-j[1], len(j[0])))]
+
 
     def find_anchor_feeds(self):
         """Uses <a></a> tags to extract feeds
@@ -253,7 +306,7 @@ class FeedSeeker(object):
             yield '/'.join([self.clean_url(), suffix])
 
 
-def find_feed_url(url, html=None):
+def find_feed_url(url, html=None, spider=0):
     """Find the single most likely feed url for a page.
 
     Parameters
@@ -264,15 +317,19 @@ def find_feed_url(url, html=None):
     html : str (optional)
           To save a second web fetch, the raw html can be supplied
 
+    spider : int (optional)
+          How many times to restart the seeker on links with the same hostname on this page
+
+
     Returns
     -------
     str or None
        A url pointing to the most likely feed, if it exists.
     """
-    return FeedSeeker(url, html).find_feed_url()
+    return FeedSeeker(url, html).find_feed_url(spider=spider)
 
 
-def generate_feed_urls(url, html=None):
+def generate_feed_urls(url, html=None, spider=0):
     """Find all feed urls for a page.
 
     Parameters
@@ -283,9 +340,12 @@ def generate_feed_urls(url, html=None):
     html : str (optional)
           To save a second web fetch, the raw html can be supplied
 
+    spider : int (optional)
+          How many times to restart the seeker on links with the same hostname on this page
+
     Yields
     ------
     str or None
        A url pointing to a feed associated with the page
     """
-    return FeedSeeker(url, html).generate_feed_urls()
+    return FeedSeeker(url, html).generate_feed_urls(spider=spider)
