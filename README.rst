@@ -9,15 +9,54 @@ A library for finding atom, rss, rdf, and xml feeds from web pages. Produced at 
 
 Quickstart
 ==========
-The library uses :code:`requests` to grab html and inspect it:
+By default, the library uses :code:`requests` to grab html and inspect it and find the most
+likely feed url:
 
 .. code-block:: python
    
-   from feed_seeker import find_feed_url, generate_feed_urls
+   from feed_seeker import find_feed_url
 
-   find_feed_url('http://xkcd.com')             # 'http://xkcd.com/atom.xml'
-   list(generate_feed_urls('http://xkcd.com'))  # ['http://xkcd.com/atom.xml', 
-                                                #  'http://xkcd.com/rss.xml']
+   >>> find_feed_url('https://github.com/ColCarroll/feed_seeker') 
+   'https://github.com/ColCarroll/feed_seeker/commits/master.atom'
+
+
+To do a more thorough search, use :code:`generate_feed_urls`, which returns more likely candidates first.
+
+.. code-block:: python
+
+   from feed_seeker import generate_feed_urls
+
+    >>> for url in generate_feed_urls('https://xkcd.com'):
+    ...     print(url)
+    ... 
+    https://xkcd.com/atom.xml
+    https://xkcd.com/rss.xml
+
+
+ For the most thorough search, add a :code:`spider` argument to do depth-first spidering of urls
+ on the same hostname. Note the below call takes nearly four minutes, compared to 0.5 seconds for
+ :code:`find_feed_url`.
+
+
+.. code-block:: python
+
+    >>> for url in generate_feed_urls('https://github.com/ColCarroll/feed_seeker', spider=1):
+    ...     print(url)
+    ... 
+    https://github.com/ColCarroll/feed_seeker/commits/master.atom
+    https://github.com/ColCarroll/feed_seeker/commits/a8f7b86eac2cedd9209ac5d2ddcceb293d2404c9.atom
+    https://github.com/ColCarroll/feed_seeker/commits/3b5245b46a10fb3647a1f08b8e584b471683fbbd.atom
+    https://github.com/ColCarroll/feed_seeker/commits/659311b8853c4c4a67e3b4bc67a78461d825a064.atom
+    https://github.com/ColCarroll/feed_seeker/commits/3e93490cb91f7652325c2fe41ef29a5be4558d6a.atom
+    https://github.com/index.atom
+    https://github.com/articles.atom
+    https://github.com/dfm/feedfinder2/commits/master.atom
+    https://github.com/ColCarroll.atom
+    https://github.com/blog.atom
+    https://github.com/blog/all.atom
+    https://github.com/blog/broadcasts.atom
+
+
 
 Installation
 ------------
