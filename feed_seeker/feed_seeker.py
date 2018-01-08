@@ -79,6 +79,34 @@ def filter_to_feeds(url_generator):
             yield url
 
 
+def default_fetch_function(url):
+    """Default function to fetch text from url
+
+    There are some strong choices on how to handle errors in `FeedSeeker`. Use this function
+    as an example of how to make a new fetch function. Note that the function may be used
+    to attempt to fetch urls that do not exist, so be thoughtful about what exceptions to throw!
+
+    Parameters
+    ----------
+    url : string
+        A url for a webpage
+
+    Returns
+    ------
+    str
+        Text of the html from the url
+    """
+
+    try:
+        response = requests.get(url)
+        if response.ok:
+            return response.text
+        else:
+            return ''
+    except requests.ConnectionError:
+        return ''
+
+
 class FeedSeeker(object):
     """A class to find possible RSS/Atom feeds on a web page.
 
@@ -104,13 +132,13 @@ class FeedSeeker(object):
         html : str (optional)
               To save a second web fetch, the raw html can be supplied
         fetcher : function (optional)
-              A function that accepts a url and returns requests.Response.  Defaults to
-              `requests.get`, but may be overridden to set a user agent, for example.
+              A function that accepts a url and returns text. See `default_fetch_function`
+              for how to write a custom fetcher.
         """
         self.url = url
         self._html = html
         self._soup = None
-        self.fetcher = fetcher or requests.get
+        self.fetcher = fetcher or default_fetch_function
 
     @property
     def html(self):
@@ -119,14 +147,7 @@ class FeedSeeker(object):
         If the fetcher encounters a ConnectionError, it will return an empty string.
         """
         if self._html is None:
-            try:
-                response = self.fetcher(self.url)
-                if response.ok:
-                    self._html = response.text
-                else:
-                    self._html = ''
-            except requests.ConnectionError:
-                self._html = ''
+            self._html = self.fetcher(self.url)
         return self._html
 
     @property
