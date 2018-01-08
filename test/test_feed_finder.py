@@ -144,7 +144,7 @@ class TestFeedSeeker(object):
         _ = self.generate_responses()
         finder = feed_seeker.FeedSeeker(self.base_url, html=None)
         internal_links = finder.find_internal_links()
-        assert len(internal_links) == 2 # from `self.generate_responses`
+        assert len(internal_links) == 1 # from `self.generate_responses`
 
     def test_guess_feed_links(self):
         # even empty page has some guesses

@@ -161,7 +161,7 @@ class FeedSeeker(object):
         parsed = urlparse(self.url)
         return urlunparse(parsed._replace(query=''))
 
-    def generate_feed_urls(self, spider=0, seen=None):
+    def generate_feed_urls(self, spider=0):
         """Generates an iterator of possible feeds, in rough order of likelihood.
 
         Parameters
@@ -175,26 +175,46 @@ class FeedSeeker(object):
         ------
             urls of possible feeds
         """
+        for url, _ in self._generate_feed_urls(spider=spider):
+            yield url
+
+    def _generate_feed_urls(self, spider=0, seen=None):
+        """Internal function that actually does the work for `generate_feed_urls`
+
+        There are some recursive calls keeping track of already seen urls, and it was easier
+        to do it this way.
+
+        Parameters
+        ----------
+        spider : int (optional)
+              How many times to restart the seeker on links with the same hostname on this page
+        seen : set
+            (Optional) list of urls to not produce. May be used as a blacklist.
+
+        Yields
+        ------
+            (string, set)
+            urls of possible feeds, and all the urls already seen
+        """
+        if seen is None:
+            seen = set()
+
         if not self.html:
             return
 
         if self.is_feed():
-            yield self.url
-            return
+            yield self.url, seen
 
-        if seen is None:
-            seen = set()
         for url_fn in (self.find_link_feeds, self.find_anchor_feeds, self.guess_feed_links):
-            for url in filter_to_feeds(url_fn()):
-                if url not in seen:
-                    seen.add(url)
-                    yield url
+            for url in filter_to_feeds(filter(lambda url: url not in seen, url_fn())):
+                seen.add(url)
+                yield url, seen
 
         if spider > 0:
-            for url in self.find_internal_links():
-                spider_seeker = FeedSeeker(url, html=None, fetcher=self.fetcher)
-                yield from spider_seeker.generate_feed_urls(spider=spider-1, seen=seen)
-
+            for internal_link in self.find_internal_links():
+                spider_seeker = FeedSeeker(internal_link, html=None, fetcher=self.fetcher)
+                for url, seen in spider_seeker._generate_feed_urls(spider=spider-1, seen=seen):
+                    yield url, seen
 
     def find_feed_url(self, spider=0):
         """Fine the single most likely url as a feed for the page, or None.
@@ -256,15 +276,18 @@ class FeedSeeker(object):
         parsed_url = urlparse(self.clean_url())
         parts = set(filter(None, parsed_url.path.split('/')))
         possible_links = []
-        for node in ('link', 'a'):
-            for link_node in self.soup.find_all(node, href=True):
-                link = link_node.get('href')
-                parsed_link = urlparse(link)
-                if parsed_link.hostname == parsed_url.hostname or not parsed_link.hostname:
-                    might_be_feed = any(check(link) for check in (_is_feed_url, _might_be_feed_url))
-                    link_parts = set(filter(None, parsed_link.path.split('/')))
-                    similarity = len(parts.intersection(link_parts)) + might_be_feed * len(parts)
-                    possible_links.append((link, similarity))
+        for link_node in self.soup.find_all('a', href=True):
+            link = link_node.get('href')
+            parsed_link = urlparse(link)
+            if not parsed_link.hostname:
+                parsed_link = parsed_link._replace(netloc=parsed_url.hostname,
+                                                   scheme=parsed_url.scheme)
+                link = urlunparse(parsed_link)
+            if parsed_link.hostname == parsed_url.hostname:
+                might_be_feed = any(check(link) for check in (_is_feed_url, _might_be_feed_url))
+                link_parts = set(filter(None, parsed_link.path.split('/')))
+                similarity = len(parts.intersection(link_parts)) + might_be_feed * len(parts)
+                possible_links.append((link, similarity))
         return [link for link, _ in sorted(set(possible_links), key=lambda j: (-j[1], len(j[0])))]
 
 
