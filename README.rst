@@ -16,8 +16,8 @@ likely feed url:
 
     from feed_seeker import find_feed_url
 
-    >>> find_feed_url('https://github.com/ColCarroll/feed_seeker') 
-    'https://github.com/ColCarroll/feed_seeker/commits/master.atom'
+    >>> find_feed_url('https://github.com/mitmedialab/feed_seeker') 
+    'https://github.com/mitmedialab/feed_seeker/commits/master.atom'
 
 
 To do a more thorough search, use :code:`generate_feed_urls`, which returns more likely candidates first.
@@ -38,22 +38,21 @@ For the most thorough search, add a :code:`spider` argument to do depth-first sp
 
 .. code-block:: python
 
-    >>> for url in generate_feed_urls('https://github.com/ColCarroll/feed_seeker', spider=1):
+    >>> for url in generate_feed_urls('https://github.com/mitmedialab/feed_seeker', spider=1):
     ...     print(url)
     ... 
-    https://github.com/ColCarroll/feed_seeker/commits/master.atom
-    https://github.com/ColCarroll/feed_seeker/commits/a8f7b86eac2cedd9209ac5d2ddcceb293d2404c9.atom
-    https://github.com/ColCarroll/feed_seeker/commits/3b5245b46a10fb3647a1f08b8e584b471683fbbd.atom
-    https://github.com/ColCarroll/feed_seeker/commits/659311b8853c4c4a67e3b4bc67a78461d825a064.atom
-    https://github.com/ColCarroll/feed_seeker/commits/3e93490cb91f7652325c2fe41ef29a5be4558d6a.atom
-    https://github.com/index.atom
-    https://github.com/articles.atom
-    https://github.com/dfm/feedfinder2/commits/master.atom
-    https://github.com/ColCarroll.atom
-    https://github.com/blog.atom
-    https://github.com/blog/all.atom
-    https://github.com/blog/broadcasts.atom
-
+	https://github.com/mitmedialab/feed_seeker/commits/master.atom,
+	https://github.com/mitmedialab/feed_seeker/commits/95cf320796c487df8b70f9c42281d8f26452cc31.atom,
+	https://github.com/mitmedialab/feed_seeker/commits/3e93490cb91f7652325c2fe41ef29a5be4558d6a.atom,
+	https://github.com/mitmedialab/feed_seeker/commits/659311b8853c4c4a67e3b4bc67a78461d825a064.atom,
+	https://github.com/mitmedialab/feed_seeker/commits/a8f7b86eac2cedd9209ac5d2ddcceb293d2404c9.atom,
+	https://github.com/index.atom,
+	https://github.com/articles.atom,
+	https://github.com/dfm/feedfinder2/commits/master.atom,
+	https://github.com/blog.atom,
+	https://github.com/blog/all.atom,
+	https://github.com/blog/broadcasts.atom,
+	https://github.com/ColCarroll.atom
 
 
 Installation
@@ -63,7 +62,7 @@ The library is not yet available on PyPI, so installation is via github only for
 
 .. code-block:: bash
 
-    pip install git+https://github.com/ColCarroll/feed_seeker
+    pip install git+https://github.com/mitmedialab/feed_seeker
                                                   
 
 
@@ -73,7 +72,7 @@ The biggest difference is that all functions are implemented as generators, and 
 
 There are also a few more heuristics based on our experience at `mediacloud <https://mediacloud.org>`_.
 
-.. |Build Status| image:: https://travis-ci.org/ColCarroll/feed_seeker.png?branch=master
-   :target: https://travis-ci.org/ColCarroll/feed_seeker
-.. |Coverage| image:: https://coveralls.io/repos/github/ColCarroll/feed_seeker/badge.svg?branch=master
-   :target: https://coveralls.io/github/ColCarroll/feed_seeker?branch=master
+.. |Build Status| image:: https://travis-ci.org/mitmedialab/feed_seeker.png?branch=master
+   :target: https://travis-ci.org/mitmedialab/feed_seeker
+.. |Coverage| image:: https://coveralls.io/repos/github/mitmedialab/feed_seeker/badge.svg?branch=master
+   :target: https://coveralls.io/github/mitmedialab/feed_seeker?branch=master
