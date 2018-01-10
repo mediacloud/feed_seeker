@@ -20,7 +20,7 @@ setup(
     long_description=long_description,
     author='Colin Carroll',
     author_email='ccarroll@mit.edu',
-    url='https://github.com/ColCarroll/feed_seeker',
+    url='https://github.com/mitmedialab/feed_seeker',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
