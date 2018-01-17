@@ -7,8 +7,18 @@ Feed Seeker
 
 A library for finding atom, rss, rdf, and xml feeds from web pages. Produced at the `mediacloud <https://mediacloud.org>`_ project. An incremental improvement over `feedfinder2 <https://github.com/dfm/feedfinder2>`_, which was itself based on `feedfinder <http://www.aaronsw.com/2002/feedfinder/>`_, written by Mark Pilgrim, and maintained by Aaron Swartz until his untimely death. 
 
+
+Installation
+------------
+
+The library is available on `PyPI <https://pypi.org/project/feed_seeker/>`_:
+
+.. code-block:: bash
+
+    pip install feed_seeker
+
 Quickstart
-==========
+----------
 By default, the library uses :code:`requests` to grab html and inspect it and find the most
 likely feed url:
 
@@ -53,17 +63,21 @@ For the most thorough search, add a :code:`spider` argument to do depth-first sp
 	https://github.com/blog/all.atom,
 	https://github.com/blog/broadcasts.atom,
 	https://github.com/ColCarroll.atom
-
-
-Installation
-------------
-
-The library is not yet available on PyPI, so installation is via github only for now:
-
-.. code-block:: bash
-
-    pip install git+https://github.com/mitmedialab/feed_seeker
                                                   
+In a hurry?
+-----------
+
+If you have a long list of urls, you might want to set a timeout with :code:`max_time`:
+
+.. code-block:: python
+
+	>>> for url in ('https://httpstat.us/200?sleep=5000', 'https://github.com/mitmedialab/feed_seeker'):
+	   ...     try:
+	   ...         print('found feed:\t{}'.format(find_feed_url(url, max_time=3)))
+	   ...     except TimeoutError:
+	   ...         print('skipping {}'.format(url))
+	   skipping https://httpstat.us/200?sleep=5000
+       found feed:	https://github.com/mitmedialab/feed_seeker/commits/master.atom
 
 
 Differences with :code:`feedfinder2`

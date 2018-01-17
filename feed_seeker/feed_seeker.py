@@ -9,7 +9,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import InvalidSchema, RetryError
 from requests.packages.urllib3.util.retry import Retry
-from timeout_decorator import timeout
+from timeout_decorator import timeout, TimeoutError as FakeTimeoutError
 
 
 def _is_feed_url(url):
@@ -396,8 +396,10 @@ def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
     """
     time_out_fn = timeout(seconds=max_time)
     seeker = FeedSeeker(url, html)
-    return time_out_fn(seeker.find_feed_url)(spider=spider, max_links=max_links)
-
+    try:
+        return time_out_fn(seeker.find_feed_url)(spider=spider, max_links=max_links)
+    except FakeTimeoutError as exc:
+        raise TimeoutError('Max time ({}s) reached'.format(str(max_time))) from exc
 
 def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     """Find all feed urls for a page.
@@ -425,4 +427,7 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     """
     time_out_fn = timeout(seconds=max_time)
     seeker = FeedSeeker(url, html)
-    return time_out_fn(seeker.generate_feed_urls)(spider=spider, max_links=max_links)
+    try:
+        yield from time_out_fn(seeker.generate_feed_urls)(spider=spider, max_links=max_links)
+    except FakeTimeoutError as exc:
+        raise TimeoutError('Max time ({}s) reached'.format(str(max_time))) from exc
