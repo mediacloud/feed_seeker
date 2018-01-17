@@ -9,7 +9,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import InvalidSchema, RetryError
 from requests.packages.urllib3.util.retry import Retry
-from timeout_decorator import timeout, TimeoutError as FakeTimeoutError
+from timeout_decorator import timeout, TimeoutError as CustomTimeoutError
 
 
 def _is_feed_url(url):
@@ -60,27 +60,6 @@ def _might_be_feed_url(url):
     )
     url_lower = url.lower()
     return any(substring in url_lower for substring in substrings)
-
-
-def filter_to_feeds(url_generator):
-    """Helper to filter a url generator and remove non-feeds.
-
-    This loads each url from the generator and inspects the underlying html.  It is quite slow,
-    but accurate.
-
-    Parameters
-    ----------
-    url_generator : iterator of strings
-        Any iterator of strings that may be urls
-
-    Yields
-    ------
-    str
-        Any input string that resolves to a valid feed is yielded
-    """
-    for url in url_generator:
-        if FeedSeeker(url).is_feed():
-            yield url
 
 
 def default_fetch_function(url):
@@ -395,10 +374,10 @@ def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
        A url pointing to the most likely feed, if it exists.
     """
     time_out_fn = timeout(seconds=max_time)
-    seeker = FeedSeeker(url, html)
+    decorated_fn = time_out_fn(FeedSeeker(url, html).find_feed_url)
     try:
-        return time_out_fn(seeker.find_feed_url)(spider=spider, max_links=max_links)
-    except FakeTimeoutError as exc:
+        return decorated_fn(spider=spider, max_links=max_links)
+    except CustomTimeoutError as exc:
         raise TimeoutError('Max time ({}s) reached'.format(str(max_time))) from exc
 
 def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
@@ -425,9 +404,13 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     str or None
        A url pointing to a feed associated with the page
     """
-    time_out_fn = timeout(seconds=max_time)
-    seeker = FeedSeeker(url, html)
-    try:
-        yield from time_out_fn(seeker.generate_feed_urls)(spider=spider, max_links=max_links)
-    except FakeTimeoutError as exc:
-        raise TimeoutError('Max time ({}s) reached'.format(str(max_time))) from exc
+    @timeout(seconds=max_time, use_signals=False, timeout_exception=TimeoutError)
+    def _generate_feed_urls(url, html=None, spider=0, max_links=None):
+        """Helper for generate_feed_urls.
+
+        This is needed because the timeout decorator does not work well with generators
+        """
+        return FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links)
+
+    return _generate_feed_urls(url, html=html, spider=spider, max_links=max_links)
+

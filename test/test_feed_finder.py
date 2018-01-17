@@ -1,5 +1,9 @@
-from feed_seeker import feed_seeker
+import time
+
+import pytest
 import responses
+
+from feed_seeker import feed_seeker
 
 
 def test__is_feed_url():
@@ -13,6 +17,28 @@ def test__might_be_feed_url():
     assert feed_seeker._might_be_feed_url('nytimes.rss')
     assert feed_seeker._might_be_feed_url('rssnews.com')
 
+
+@responses.activate
+def test_find_feed_url_max_time():
+    max_time = 0.5
+
+    def request_callback(request):
+        time.sleep(2 * max_time)
+        return (200, {}, '')
+
+    url = 'http://nopenopenope.nope'
+    responses.add_callback(responses.GET, url, callback=request_callback)
+
+    with pytest.raises(TimeoutError):
+        feed_seeker.find_feed_url(url, max_time=max_time)
+
+    def request_callback(request):
+        return (200, {}, '')
+
+    # make sure it doesn't always raise
+    url = 'http://yupyupyup.yup'
+    responses.add_callback(responses.GET, url, callback=request_callback)
+    feed_seeker.find_feed_url(url, max_time=max_time)
 
 
 class TestFeedSeeker(object):
@@ -57,7 +83,6 @@ class TestFeedSeeker(object):
             head=self.rss_feed_template.format(feeds[0]),
             body='<a href="{}"></a>'.format(feeds[1])
         )
-        print(html)
 
         assert feeds[0] in html
         assert feeds[1] in html
@@ -70,29 +95,59 @@ class TestFeedSeeker(object):
                 feed = self.base_url + feed
             responses.add(responses.GET, feed, body=self.regular_feed_page, status=200)
 
-        for feed in non_feeds:
+        for feed in non_feeds[:-1]:
             responses.add(responses.GET, self.base_url + feed,
                           body=self.regular_html_template, status=200)
 
-        return feeds
+        # handle bad statuses
+        responses.add(responses.GET, self.base_url + non_feeds[-1],
+                      body=self.regular_html_template, status=500)
+
+        return feeds, non_feeds
+
+    def test_spider(self):
+        steps = 5
+        urls, feeds = [], []
+        for step in range(steps):
+            html = self.regular_html_template.format(
+                head=self.rss_feed_template.format('/{}.rss'.format(step)),
+                body='<a href="/{}.html"'.format(step + 1))
+            urls.append(self.base_url + '/{}.html'.format(step))
+            feeds.append(self.base_url + '/{}.rss'.format(step))
+            responses.add(responses.GET, urls[-1], body=html, status=200)
+            responses.add(responses.GET, feeds[-1], body=self.regular_feed_page, status=200)
+
+        for j in range(steps - 1):
+            found_feeds = list(feed_seeker.generate_feed_urls(urls[0], spider=j))
+            assert feeds[:j + 1] == found_feeds
 
     def test_generate_feed_urls(self):
-        feeds = self.generate_responses()
+        feeds, _ = self.generate_responses()
 
         finder = feed_seeker.FeedSeeker(self.base_url)
         found_feeds = list(finder.generate_feed_urls())
 
         assert len(found_feeds) == len(feeds)
 
+    def test_generate_feed_urls_max_links(self):
+        feeds, _ = self.generate_responses()
+
+        finder = feed_seeker.FeedSeeker(self.base_url)
+        max_links = 2
+        found_feeds = list(finder.generate_feed_urls(max_links=max_links))
+
+        assert len(found_feeds) > 0
+        assert len(found_feeds) <= max_links < len(feeds)
+
     def test_generate_feed_urls_function(self):
-        feeds = self.generate_responses()
+        feeds, _ = self.generate_responses()
 
         found_feeds = list(feed_seeker.generate_feed_urls(self.base_url))
 
         assert len(found_feeds) == len(feeds)
 
     def test_generate_feed_urls_not_a_page(self):
-        feeds = self.generate_responses()
+        feeds, _ = self.generate_responses()
 
         finder = feed_seeker.FeedSeeker(self.base_url + '/what_is_this_even')
         found_feeds = list(finder.generate_feed_urls())
@@ -100,7 +155,7 @@ class TestFeedSeeker(object):
         assert len(found_feeds) == 0
 
     def test_generate_feed_urls_on_feed(self):
-        feeds = self.generate_responses()
+        feeds, _ = self.generate_responses()
 
         finder = feed_seeker.FeedSeeker(self.base_url + feeds[0])
         found_feeds = list(finder.generate_feed_urls())
@@ -108,7 +163,7 @@ class TestFeedSeeker(object):
         assert len(found_feeds) == 1
 
     def test_find_feed_url(self):
-        feeds = self.generate_responses()
+        feeds, _ = self.generate_responses()
 
         url = feed_seeker.find_feed_url(self.base_url)
         assert url == self.base_url + feeds[0]
