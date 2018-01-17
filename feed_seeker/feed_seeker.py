@@ -7,7 +7,9 @@ from urllib.parse import urljoin, urlparse, urlunparse
 from bs4 import BeautifulSoup
 import requests
 from requests.adapters import HTTPAdapter
+from requests.exceptions import InvalidSchema, RetryError
 from requests.packages.urllib3.util.retry import Retry
+from timeout_decorator import timeout
 
 
 def _is_feed_url(url):
@@ -111,7 +113,7 @@ def default_fetch_function(url):
             return ''
 
     # ConnectionError for 404s, InvalidSchema for email addresses
-    except (requests.ConnectionError, requests.exceptions.InvalidSchema):
+    except (requests.ConnectionError, InvalidSchema, RetryError):
         return ''
 
 
@@ -167,22 +169,43 @@ class FeedSeeker(object):
         parsed = urlparse(self.url)
         return urlunparse(parsed._replace(query=''))
 
-    def generate_feed_urls(self, spider=0):
+    def _should_continue(self, seen, max_links):
+        """Helper to short-circuit spidering
+        Parameters
+        ----------
+        seen : set
+            List of urls that have already been checked
+        max_links : int or None
+            Maximum number of links to check
+
+        Returns
+        ------
+        boolean
+            True if no stop condition has been met, False otherwise
+        """
+        if max_links is not None and len(seen) >= max_links:
+            return False
+        return True
+
+    def generate_feed_urls(self, spider=0, max_links=None):
         """Generates an iterator of possible feeds, in rough order of likelihood.
 
         Parameters
         ----------
         spider : int (optional)
               How many times to restart the seeker on links with the same hostname on this page
+        max_links : int (optional)
+              Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
+              for unlimited.
 
         Yields
         ------
             urls of possible feeds
         """
-        for url, _ in self._generate_feed_urls(spider=spider):
+        for url, _ in self._generate_feed_urls(spider=spider, max_links=max_links):
             yield url
 
-    def _generate_feed_urls(self, spider=0, seen=None):
+    def _generate_feed_urls(self, spider=0, seen=None, max_links=None):
         """Internal function that actually does the work for `generate_feed_urls`
 
         There are some recursive calls keeping track of already seen urls, and it was easier
@@ -194,6 +217,9 @@ class FeedSeeker(object):
               How many times to restart the seeker on links with the same hostname on this page
         seen : set
             (Optional) list of urls to not produce. May be used as a blacklist.
+        max_links : int (optional)
+              Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
+              for unlimited.
 
         Yields
         ------
@@ -215,22 +241,32 @@ class FeedSeeker(object):
             for url in url_fn():
                 if url not in seen:
                     seen.add(url)
+                    if not self._should_continue(seen, max_links):
+                        return
                     if FeedSeeker(url).is_feed():
                         yield url, seen
 
         if spider > 0:
             for internal_link in self.find_internal_links():
                 spider_seeker = FeedSeeker(internal_link, html=None, fetcher=self.fetcher)
-                for url, seen in spider_seeker._generate_feed_urls(spider=spider-1, seen=seen):
+                kwargs = {
+                    'spider': spider - 1,
+                    'seen': seen,
+                    'max_links': max_links,
+                }
+                for url, seen in spider_seeker._generate_feed_urls(**kwargs):
                     yield url, seen
 
-    def find_feed_url(self, spider=0):
+    def find_feed_url(self, spider=0, max_links=None):
         """Fine the single most likely url as a feed for the page, or None.
 
         Parameters
         ----------
         spider : int (optional)
               How many times to restart the seeker on links with the same hostname on this page
+        max_links : int (optional)
+              Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
+              for unlimited.
 
         Returns
         -------
@@ -239,7 +275,7 @@ class FeedSeeker(object):
         """
 
         try:
-            return next(self.generate_feed_urls(spider=spider))
+            return next(self.generate_feed_urls(spider=spider, max_links=max_links))
         except StopIteration:
             return None
 
@@ -333,19 +369,24 @@ class FeedSeeker(object):
             yield urljoin(base=self.clean_url(), url=suffix)
 
 
-def find_feed_url(url, html=None, spider=0):
+def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
     """Find the single most likely feed url for a page.
 
     Parameters
     ----------
     url : str
           A url that resolves to the webpage in question
-
     html : str (optional)
           To save a second web fetch, the raw html can be supplied
-
     spider : int (optional)
           How many times to restart the seeker on links with the same hostname on this page
+    max_time : float (optional)
+          Give up after a certain amount of time. This is a lower limit, in that time
+          is checked *after* each request returns. Defaults to `None` for unlimited. Will
+          throw a TimeoutError if reached
+    max_links : int (optional)
+          Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
+          for unlimited.
 
 
     Returns
@@ -353,26 +394,35 @@ def find_feed_url(url, html=None, spider=0):
     str or None
        A url pointing to the most likely feed, if it exists.
     """
-    return FeedSeeker(url, html).find_feed_url(spider=spider)
+    time_out_fn = timeout(seconds=max_time)
+    seeker = FeedSeeker(url, html)
+    return time_out_fn(seeker.find_feed_url)(spider=spider, max_links=max_links)
 
 
-def generate_feed_urls(url, html=None, spider=0):
+def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     """Find all feed urls for a page.
 
     Parameters
     ----------
     url : str
           A url that resolves to the webpage in question
-
     html : str (optional)
           To save a second web fetch, the raw html can be supplied
-
     spider : int (optional)
           How many times to restart the seeker on links with the same hostname on this page
+    max_time : float (optional)
+          Give up after a certain amount of time. This is a lower limit, in that time
+          is checked *after* each request returns. Defaults to `None` for unlimited. Throws
+          a TimeoutError when the time is reached
+    max_links : int (optional)
+          Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
+          for unlimited.
 
     Yields
     ------
     str or None
        A url pointing to a feed associated with the page
     """
-    return FeedSeeker(url, html).generate_feed_urls(spider=spider)
+    time_out_fn = timeout(seconds=max_time)
+    seeker = FeedSeeker(url, html)
+    return time_out_fn(seeker.generate_feed_urls)(spider=spider, max_links=max_links)
