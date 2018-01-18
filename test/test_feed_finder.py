@@ -45,24 +45,37 @@ def test_find_feed_max_time():
 @responses.activate
 def test_generate_feeds_max_time():
     max_time = 0.5
-
-    def request_callback(request):
-        time.sleep(2 * max_time)
-        return (200, {}, '')
+    num_feeds = 10
 
     url = 'http://nopenopenope.nope'
-    responses.add_callback(responses.GET, url, callback=request_callback)
 
-    # Make sure it can raise
+    rss_feed_template = '<link type="application/rss+xml" href="{}" />'
+    rss_text, rss_links = [], []
+
+    def request_callback(request):
+        time.sleep(2 * max_time / num_feeds)
+        return (200, {}, '<?xml version="1.0"?> <rss version="2.0"></rss>')
+
+    for idx in range(num_feeds):
+        rss_links.append(url + '/{}.rss'.format(idx))
+        rss_text.append(rss_feed_template.format(rss_links[-1]))
+        responses.add_callback(responses.GET, rss_links[-1], callback=request_callback)
+    html = "<html><head>{}</head><body></body></html>".format('\n'.join(rss_text))
+    responses.add(responses.GET, url, body=html, status=200)
+
+    discovered = []
+    # Make sure it can raise, but get partial results
     with pytest.raises(TimeoutError):
-        list(feed_seeker.generate_feed_urls(url, max_time=max_time))
+        for feed in feed_seeker.generate_feed_urls(url, max_time=max_time):
+            discovered.append(feed)
+    assert len(discovered) > 2  # will probably get 4, but this is fine
 
     def request_callback(request):
         return (200, {}, '')
 
     # make sure it doesn't always raise
     url = 'http://yupyupyup.yup'
-    responses.add_callback(responses.GET, url, callback=request_callback)
+    responses.add(responses.GET, url, body='', status=200)
     list(feed_seeker.generate_feed_urls(url, max_time=max_time))
 
 
