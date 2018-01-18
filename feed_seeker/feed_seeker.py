@@ -2,14 +2,30 @@
 
 See https://github.com/dfm/feedfinder2 for other approaches to the same task.
 """
+from contextlib import contextmanager
+import signal
 from urllib.parse import urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import InvalidSchema, RetryError
-from requests.packages.urllib3.util.retry import Retry
-from timeout_decorator import timeout, TimeoutError as CustomTimeoutError
+from urllib3.util.retry import Retry
+
+
+@contextmanager
+def timeout(seconds=None):
+    """Context manager for handling timeouts"""
+    if seconds:
+        def handler(signum, frame):
+            """Handle signal timer"""
+            raise TimeoutError('Timeout reached ({}s)'.format(seconds))
+        old = signal.signal(signal.SIGALRM, handler)
+        signal.setitimer(signal.ITIMER_REAL, seconds)
+    yield
+    if seconds:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
 
 
 def _is_feed_url(url):
@@ -373,12 +389,9 @@ def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
     str or None
        A url pointing to the most likely feed, if it exists.
     """
-    time_out_fn = timeout(seconds=max_time)
-    decorated_fn = time_out_fn(FeedSeeker(url, html).find_feed_url)
-    try:
-        return decorated_fn(spider=spider, max_links=max_links)
-    except CustomTimeoutError as exc:
-        raise TimeoutError('Max time ({}s) reached'.format(str(max_time))) from exc
+    with timeout(max_time):
+        return FeedSeeker(url, html).find_feed_url(spider=spider, max_links=max_links)
+
 
 def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     """Find all feed urls for a page.
@@ -404,13 +417,6 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     str or None
        A url pointing to a feed associated with the page
     """
-    @timeout(seconds=max_time, use_signals=False, timeout_exception=TimeoutError)
-    def _generate_feed_urls(url, html=None, spider=0, max_links=None):
-        """Helper for generate_feed_urls.
-
-        This is needed because the timeout decorator does not work well with generators
-        """
-        return FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links)
-
-    return _generate_feed_urls(url, html=html, spider=spider, max_links=max_links)
-
+    with timeout(max_time):
+        for feed in FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links):
+            yield feed

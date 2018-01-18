@@ -19,7 +19,7 @@ def test__might_be_feed_url():
 
 
 @responses.activate
-def test_find_feed_url_max_time():
+def test_find_feed_max_time():
     max_time = 0.5
 
     def request_callback(request):
@@ -29,6 +29,7 @@ def test_find_feed_url_max_time():
     url = 'http://nopenopenope.nope'
     responses.add_callback(responses.GET, url, callback=request_callback)
 
+    # Make sure it can raise
     with pytest.raises(TimeoutError):
         feed_seeker.find_feed_url(url, max_time=max_time)
 
@@ -39,6 +40,30 @@ def test_find_feed_url_max_time():
     url = 'http://yupyupyup.yup'
     responses.add_callback(responses.GET, url, callback=request_callback)
     feed_seeker.find_feed_url(url, max_time=max_time)
+
+
+@responses.activate
+def test_generate_feeds_max_time():
+    max_time = 0.5
+
+    def request_callback(request):
+        time.sleep(2 * max_time)
+        return (200, {}, '')
+
+    url = 'http://nopenopenope.nope'
+    responses.add_callback(responses.GET, url, callback=request_callback)
+
+    # Make sure it can raise
+    with pytest.raises(TimeoutError):
+        list(feed_seeker.generate_feed_urls(url, max_time=max_time))
+
+    def request_callback(request):
+        return (200, {}, '')
+
+    # make sure it doesn't always raise
+    url = 'http://yupyupyup.yup'
+    responses.add_callback(responses.GET, url, callback=request_callback)
+    list(feed_seeker.generate_feed_urls(url, max_time=max_time))
 
 
 class TestFeedSeeker(object):
