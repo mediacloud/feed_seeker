@@ -15,7 +15,7 @@ with open(requirements_file) as f:
 
 setup(
     name='feed_seeker',
-    version='0.0.1',
+    version='1.0.0',
     description='Extract rss, atom, and other feeds from webpages',
     long_description=long_description,
     author='Colin Carroll',
