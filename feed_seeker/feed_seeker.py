@@ -327,7 +327,6 @@ class FeedSeeker(object):
                 possible_links.append((link, similarity))
         return [link for link, _ in sorted(set(possible_links), key=lambda j: (-j[1], len(j[0])))]
 
-
     def find_anchor_feeds(self):
         """Uses <a></a> tags to extract feeds
 
