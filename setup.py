@@ -27,9 +27,11 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
     packages=find_packages(exclude=['test']),
+    python_requires='>=3.5',
     install_requires=install_reqs,
     include_package_data=True,
 )

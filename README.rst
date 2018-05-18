@@ -17,6 +17,8 @@ The library is available on `PyPI <https://pypi.org/project/feed_seeker/>`_:
 
     pip install feed_seeker
 
+The library requires Python 3.5+.
+
 Quickstart
 ----------
 By default, the library uses :code:`requests` to grab html and inspect it and find the most
