@@ -1,6 +1,7 @@
 ===========
 Feed Seeker
 ===========
+
 *It slant rhymes with "heat seeker"*
 
 |Build Status| |Coverage|
@@ -19,6 +20,7 @@ The library is available on `PyPI <https://pypi.org/project/feed_seeker/>`_:
 
 The library requires Python 3.5+.
 
+
 Quickstart
 ----------
 By default, the library uses :code:`requests` to grab html and inspect it and find the most
@@ -30,7 +32,6 @@ likely feed url:
 
     >>> find_feed_url('https://github.com/mitmedialab/feed_seeker') 
     'https://github.com/mitmedialab/feed_seeker/commits/master.atom'
-
 
 To do a more thorough search, use :code:`generate_feed_urls`, which returns more likely candidates first.
 
@@ -44,28 +45,27 @@ To do a more thorough search, use :code:`generate_feed_urls`, which returns more
     https://xkcd.com/atom.xml
     https://xkcd.com/rss.xml
 
-
 For the most thorough search, add a :code:`spider` argument to do depth-first spidering of urls on the same hostname. Note the below call takes nearly four minutes, compared to 0.5 seconds for :code:`find_feed_url`.
-
 
 .. code-block:: python
 
     >>> for url in generate_feed_urls('https://github.com/mitmedialab/feed_seeker', spider=1):
     ...     print(url)
     ... 
-	https://github.com/mitmedialab/feed_seeker/commits/master.atom,
-	https://github.com/mitmedialab/feed_seeker/commits/95cf320796c487df8b70f9c42281d8f26452cc31.atom,
-	https://github.com/mitmedialab/feed_seeker/commits/3e93490cb91f7652325c2fe41ef29a5be4558d6a.atom,
-	https://github.com/mitmedialab/feed_seeker/commits/659311b8853c4c4a67e3b4bc67a78461d825a064.atom,
-	https://github.com/mitmedialab/feed_seeker/commits/a8f7b86eac2cedd9209ac5d2ddcceb293d2404c9.atom,
-	https://github.com/index.atom,
-	https://github.com/articles.atom,
-	https://github.com/dfm/feedfinder2/commits/master.atom,
-	https://github.com/blog.atom,
-	https://github.com/blog/all.atom,
-	https://github.com/blog/broadcasts.atom,
-	https://github.com/ColCarroll.atom
-                                                  
+    https://github.com/mitmedialab/feed_seeker/commits/master.atom,
+    https://github.com/mitmedialab/feed_seeker/commits/95cf320796c487df8b70f9c42281d8f26452cc31.atom,
+    https://github.com/mitmedialab/feed_seeker/commits/3e93490cb91f7652325c2fe41ef29a5be4558d6a.atom,
+    https://github.com/mitmedialab/feed_seeker/commits/659311b8853c4c4a67e3b4bc67a78461d825a064.atom,
+    https://github.com/mitmedialab/feed_seeker/commits/a8f7b86eac2cedd9209ac5d2ddcceb293d2404c9.atom,
+    https://github.com/index.atom,
+    https://github.com/articles.atom,
+    https://github.com/dfm/feedfinder2/commits/master.atom,
+    https://github.com/blog.atom,
+    https://github.com/blog/all.atom,
+    https://github.com/blog/broadcasts.atom,
+    https://github.com/ColCarroll.atom
+
+
 In a hurry?
 -----------
 
@@ -73,13 +73,13 @@ If you have a long list of urls, you might want to set a timeout with :code:`max
 
 .. code-block:: python
 
-	>>> for url in ('https://httpstat.us/200?sleep=5000', 'https://github.com/mitmedialab/feed_seeker'):
-	   ...     try:
-	   ...         print('found feed:\t{}'.format(find_feed_url(url, max_time=3)))
-	   ...     except TimeoutError:
-	   ...         print('skipping {}'.format(url))
-	   skipping https://httpstat.us/200?sleep=5000
-       found feed:	https://github.com/mitmedialab/feed_seeker/commits/master.atom
+    >>> for url in ('https://httpstat.us/200?sleep=5000', 'https://github.com/mitmedialab/feed_seeker'):
+       ...     try:
+       ...         print('found feed:\t{}'.format(find_feed_url(url, max_time=3)))
+       ...     except TimeoutError:
+       ...         print('skipping {}'.format(url))
+       skipping https://httpstat.us/200?sleep=5000
+       found feed:  https://github.com/mitmedialab/feed_seeker/commits/master.atom
 
 
 Differences with :code:`feedfinder2`
