@@ -3,3 +3,8 @@
 .coverage
 htmlcov/
 *.egg-info/
+feed_seeker/include/
+feed_seeker/lib/
+feed_seeker/.Python
+feed_seeker/bin/
+feed_seeker/pip-selfcheck.json
