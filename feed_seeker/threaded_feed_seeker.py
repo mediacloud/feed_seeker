@@ -2,11 +2,11 @@
 
 See https://github.com/dfm/feedfinder2 for other approaches to the same task.
 """
+from threading import Thread, Event
+import time 
 from contextlib import contextmanager
 import signal
 from urllib.parse import urljoin, urlparse, urlunparse
-import time
-import timeout_decorator
 
 from bs4 import BeautifulSoup
 import requests
@@ -183,7 +183,7 @@ class FeedSeeker(object):
         if max_links is not None and len(seen) >= max_links:
             return False
         return True
-    @timeout_decorator.timeout(seconds)
+
     def generate_feed_urls(self, spider=0, max_links=None):
         """Generates an iterator of possible feeds, in rough order of likelihood.
 
