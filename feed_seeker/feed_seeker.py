@@ -166,6 +166,14 @@ class FeedSeeker(object):
         parsed = urlparse(self.url)
         return urlunparse(parsed._replace(query=''))
 
+    def get_feedly_api_keys(self, filename):
+        api_keys = []
+        with open(filename,"r") as api_key_file:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            for row in reader:
+                api_keys.append(row[0])
+        return api_keys
+
     def _should_continue(self, seen, max_links):
         """Helper to short-circuit spidering
         Parameters
@@ -183,6 +191,7 @@ class FeedSeeker(object):
         if max_links is not None and len(seen) >= max_links:
             return False
         return True
+
     @timeout_decorator.timeout(seconds)
     def generate_feed_urls(self, spider=0, max_links=None):
         """Generates an iterator of possible feeds, in rough order of likelihood.
@@ -307,6 +316,18 @@ class FeedSeeker(object):
             if url:
                 yield urljoin(base=self.clean_url(), url=url)
 
+    def find_feedly_feeds(self, url, html):
+        api_keys = self.get_feedly_api_keys("feedly_api_key")
+        if api_keys == []:
+            print("No Valid API key found")
+            return None
+        search_url = "https://cloud.feedly.com/v3/search/feeds/?"
+        query = "query=" + urllib.parse.urlencode(url)
+        final_url = search_url + query
+        response = requests.get(final_url,auth=(api_keys[0]))
+        for i in range(5)
+            yield self.url
+
     def find_internal_links(self):
         """Finds <a></a> tags to internal pages on the same domain that may have a feed.
 
@@ -393,7 +414,6 @@ def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
     with timeout(max_time):
         return FeedSeeker(url, html).find_feed_url(spider=spider, max_links=max_links)
 
-
 def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     """Find all feed urls for a page.
 
@@ -418,6 +438,8 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     str or None
        A url pointing to a feed associated with the page
     """
-    with timeout(max_time):
-        for feed in FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links):
-            yield feed
+    feedSeeker = FeedSeeker(url, html)
+    for feed in feedSeeker.find_feedly_feeds(url, html)
+        yield feed
+    for feed in FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links):
+        yield feed
