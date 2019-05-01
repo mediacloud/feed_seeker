@@ -107,7 +107,8 @@ def default_fetch_function(url):
         else:
             return ''
 
-    # ConnectionError for 404s, InvalidSchema for email addresses
+    # ConnectionError for 404s, InvalidSchema for email addresses, requests.TooManyRedirects
+    # for issues with a url giving too many redirect loops.
     except (requests.ConnectionError, InvalidSchema, RetryError, requests.TooManyRedirects):
         return ''
 
