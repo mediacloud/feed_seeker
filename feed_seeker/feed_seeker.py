@@ -316,6 +316,9 @@ class FeedSeeker(object):
         possible_links = []
         for link_node in self.soup.find_all('a', href=True):
             link = link_node.get('href')
+            # Sometimes links without schemas are discovered -- this applies a default "http" schema to the discovered link
+            if link.startswith('//'):
+                link = 'http:{}'.format(link)
             parsed_link = urlparse(link)
             if not parsed_link.hostname:
                 parsed_link = parsed_link._replace(netloc=parsed_url.hostname,
