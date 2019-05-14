@@ -65,6 +65,25 @@ For the most thorough search, add a :code:`spider` argument to do depth-first sp
     https://github.com/blog/broadcasts.atom,
     https://github.com/ColCarroll.atom
 
+New Feedly Support
+------------------
+Search Feedly to find relevant feeds to a specific site:
+
+.. code-block:: python
+
+    from feed_seeker import find_feedly_feeds
+    
+    >>> for url in find_feedly_feeds('https://www.nytimes.com'):
+    ...     print(url)
+    ... 
+
+    http://www.nytimes.com/services/xml/rss/nyt/HomePage.xml
+    http://www.nytimes.com/services/xml/rss/nyt/HomePage.xml
+    http://www.nytimes.com/services/xml/rss/nyt/Science.xml
+    http://www.nytimes.com/services/xml/rss/nyt/Travel.xml
+    http://www.nytimes.com/services/xml/rss/nyt/Technology.xml
+    http://www.nytimes.com/services/xml/rss/nyt/Business.xml
+
 
 In a hurry?
 -----------
@@ -92,3 +111,4 @@ There are also a few more heuristics based on our experience at `mediacloud <htt
    :target: https://travis-ci.org/mitmedialab/feed_seeker
 .. |Coverage| image:: https://coveralls.io/repos/github/mitmedialab/feed_seeker/badge.svg?branch=master
    :target: https://coveralls.io/github/mitmedialab/feed_seeker?branch=master
+
