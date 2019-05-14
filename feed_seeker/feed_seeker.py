@@ -5,13 +5,15 @@ See https://github.com/dfm/feedfinder2 for other approaches to the same task.
 from contextlib import contextmanager
 import signal
 from urllib.parse import urljoin, urlparse, urlunparse
-
+from typing import Iterable
 from bs4 import BeautifulSoup
 import requests
+import sys
 from requests.adapters import HTTPAdapter
 from requests.exceptions import InvalidSchema, RetryError
 from urllib3.util.retry import Retry
-
+import publicsuffix
+import time
 
 @contextmanager
 def timeout(seconds=None):
@@ -244,6 +246,8 @@ class FeedSeeker(object):
 
         if spider > 0:
             for internal_link in self.find_internal_links():
+                print("Internal Link: {}".format(internal_link))
+                #sys.exit()
                 spider_seeker = FeedSeeker(internal_link, html=None, fetcher=self.fetcher)
                 kwargs = {
                     'spider': spider - 1,
@@ -366,6 +370,48 @@ class FeedSeeker(object):
         for suffix in suffixes:
             yield urljoin(base=self.clean_url(), url=suffix)
 
+    def find_feedly_feeds(self,
+                          max_links : int = None,
+                          throttle : int = 5):
+        """This is the class method for the find_feedly_feeds method below. Check out the
+        description there for more information on how to use the method
+        """
+
+        search_url = "https://cloud.feedly.com/v3/search/feeds"
+
+        # Fetch current public suffix list and determine root domain of url
+        psl = publicsuffix.fetch()
+        ps = publicsuffix.PublicSuffixList(psl)
+        self.uri_root_domain = ps.get_public_suffix(self.url)
+        self.uri_hostname = urlparse(self.url).hostname
+        self.uri_domain_only = self.uri_root_domain.split('.', 1)[0]
+
+        found_hostnames = set() # Hostnames found during search
+        checked_queries = set() # Previously checked queries / urls
+        found_feeds = set()     # Set of found feeds
+        queries = [self.uri_hostname, self.uri_root_domain, self.uri_domain_only]
+
+        for url in queries:
+            if url in checked_queries:
+                continue
+            params = {}
+            params['query'] = url
+            params['count'] = 500
+            response = requests.get(search_url,params=params)
+            if response.status_code == 200:
+                checked_queries.add(url)
+                feeds = response.json()
+                for feed in feeds['results']:
+                    url = feed['feedId'][5:]
+                    hostname = urlparse(url).hostname
+                    if hostname.endswith(self.uri_hostname):
+                        if hostname not in found_hostnames:
+                            queries.append(hostname) # Add more hostnames relevant to main site for more results
+                            found_hostnames.add(hostname)
+                        if url not in found_feeds:
+                            yield url
+            time.sleep(throttle) # Throttle requests
+
 
 def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
     """Find the single most likely feed url for a page.
@@ -423,3 +469,18 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     with timeout(max_time):
         for feed in FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links):
             yield feed
+
+def find_feedly_feeds(url:str,
+                      max_links : int = None,
+                      throttle : int = 5) -> Iterable[str]:
+    """Use feedly to discover feeds
+    There are a few gotchas here. Sometimes searching with the top level domain
+    attached doesn't yield as many results (e.g. washingtonpost.com) -- however,
+    searching by just the domain (e.g. washingtonpost) does turn up many results.
+    Also, an API Key is not required for this endpoint. However, occasionally a
+    403 response is returned which may be from an internal undocumented throttle
+    or other issues. The default throttle between requests is 5 seconds and can be
+    set using the throttle parameter.
+    """
+    for feed in FeedSeeker(url).find_feedly_feeds(max_links=max_links,throttle=throttle):
+        yield feed
