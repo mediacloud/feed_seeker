@@ -51,7 +51,7 @@ def get_feeds_for_sources(sources, output_dir, proxy):
 
 
 proxy = {}
-# feedly requires https proxy to be set
+# if using a proxy with feedly you should set https
 #proxy = {
 #    'http': '',
 #    'https': '',
