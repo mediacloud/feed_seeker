@@ -235,20 +235,22 @@ class FeedSeeker(object):
             yield self.url, seen
             return
 
+        myclass = type(self)
+
         for url_fn in (self.find_link_feeds, self.find_anchor_feeds, self.guess_feed_links):
             for url in url_fn():
                 if url not in seen:
                     seen.add(url)
                     if not self._should_continue(seen, max_links):
                         return
-                    if FeedSeeker(url).is_feed():
+                    if myclass(url, html=None, fetcher=self.fetcher).is_feed():
                         yield url, seen
 
         if spider > 0:
             for internal_link in self.find_internal_links():
                 print("Internal Link: {}".format(internal_link))
                 #sys.exit()
-                spider_seeker = FeedSeeker(internal_link, html=None, fetcher=self.fetcher)
+                spider_seeker = myclass(internal_link, html=None, fetcher=self.fetcher)
                 kwargs = {
                     'spider': spider - 1,
                     'seen': seen,
@@ -442,7 +444,7 @@ def find_feed_url(url, html=None, spider=0, max_time=None, max_links=None):
         return FeedSeeker(url, html).find_feed_url(spider=spider, max_links=max_links)
 
 
-def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
+def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None, fetcher=None):
     """Find all feed urls for a page.
 
     Parameters
@@ -460,6 +462,9 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
     max_links : int (optional)
           Maximum links to check as feeds, to limit spidering complexity. Defaults to `None`,
           for unlimited.
+    fetcher : function (optional)
+          A function that accepts a url and returns text. See `default_fetch_function`
+          for how to write a custom fetcher.
 
     Yields
     ------
@@ -467,7 +472,7 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None):
        A url pointing to a feed associated with the page
     """
     with timeout(max_time):
-        for feed in FeedSeeker(url, html).generate_feed_urls(spider=spider, max_links=max_links):
+        for feed in FeedSeeker(url, html, fetcher).generate_feed_urls(spider=spider, max_links=max_links):
             yield feed
 
 def find_feedly_feeds(url:str,
