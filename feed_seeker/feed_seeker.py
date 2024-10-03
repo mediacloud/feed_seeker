@@ -235,7 +235,7 @@ class FeedSeeker(object):
             yield self.url, seen
             return
 
-        myclass = type(self)
+        cls = type(self)        # get object class (in case subclassed)
 
         for url_fn in (self.find_link_feeds, self.find_anchor_feeds, self.guess_feed_links):
             for url in url_fn():
@@ -243,14 +243,14 @@ class FeedSeeker(object):
                     seen.add(url)
                     if not self._should_continue(seen, max_links):
                         return
-                    if myclass(url, html=None, fetcher=self.fetcher).is_feed():
+                    if cls(url, html=None, fetcher=self.fetcher).is_feed():
                         yield url, seen
 
         if spider > 0:
             for internal_link in self.find_internal_links():
-                print("Internal Link: {}".format(internal_link))
+                #print("Internal Link: {}".format(internal_link))
                 #sys.exit()
-                spider_seeker = myclass(internal_link, html=None, fetcher=self.fetcher)
+                spider_seeker = cls(internal_link, html=None, fetcher=self.fetcher)
                 kwargs = {
                     'spider': spider - 1,
                     'seen': seen,
