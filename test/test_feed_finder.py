@@ -251,3 +251,58 @@ class TestFeedSeeker(object):
         finder = feed_seeker.FeedSeeker(self.base_url, html=self.regular_html_template)
         # Page has no links, so should fail
         assert finder.find_feed_url() is None
+
+class TestFetcherFunction(object):
+    """
+    tests for user supplied fetcher function
+    """
+
+    def setup_method(self):
+        self.base_url = 'http://nopenopenope.nope'
+        self.regular_feed_page = '<?xml version="1.0"?> <rss version="2.0"></rss>'
+        self.html_page = "<html><head>foo</head><body></body></html>"
+
+    def test_feedseeker_fetcher_homepage(self):
+        # if homepage is RSS, nothing else will be fetched
+        def fetcher(url):
+            return self.regular_feed_page
+        finder = feed_seeker.FeedSeeker(self.base_url, fetcher=fetcher)
+        feed_urls = list(finder.generate_feed_urls(spider=0, max_links=None))
+        assert len(feed_urls) == 1
+
+    def test_feedseeker_fetcher(self):
+        # HTML home page
+        self.feeds_fetched = 0
+        def fetcher(url):
+            if url == self.base_url:
+                return self.html_page
+            self.feeds_fetched += 1
+            return self.regular_feed_page
+        finder = feed_seeker.FeedSeeker(self.base_url, fetcher=fetcher)
+        feed_urls = list(finder.generate_feed_urls(spider=0, max_links=None))
+        assert self.feeds_fetched > 1 and len(feed_urls) == self.feeds_fetched
+
+    def test_feedseeker_fetcher_limit(self):
+        # HTML home page, test fetcher "error" response
+        self.feeds_fetched = 0
+        limit = 10
+        def fetcher(url):
+            if url == self.base_url:
+                return self.html_page
+            if self.feeds_fetched == limit:
+                return ''       # error response?!
+            self.feeds_fetched += 1
+            return self.regular_feed_page
+        finder = feed_seeker.FeedSeeker(self.base_url, fetcher=fetcher)
+        feed_urls = list(finder.generate_feed_urls(spider=0, max_links=None))
+        assert self.feeds_fetched == limit and len(feed_urls) == self.feeds_fetched
+
+    def test_generate_fetcher(self):
+        self.feeds_fetched = 0
+        def fetcher(url):
+            if url == self.base_url:
+                return self.html_page
+            self.feeds_fetched += 1
+            return self.regular_feed_page
+        feed_urls = list(feed_seeker.generate_feed_urls(self.base_url, fetcher=fetcher))
+        assert self.feeds_fetched > 1 and len(feed_urls) == self.feeds_fetched
