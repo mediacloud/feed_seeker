@@ -9,7 +9,7 @@ authors = [
     {name = "Colin Carroll", email = "ccarroll@mit.edu"},
 ]
 description = "Find rss, atom, xml, and rdf feeds on webpages"
-readme = "README.md"
+readme = "README.rst"
 requires-python = ">=3.10"
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
