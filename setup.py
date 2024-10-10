@@ -15,12 +15,12 @@ with open(requirements_file) as f:
 
 setup(
     name='feed_seeker',
-    version='1.0.0',
-    description='Extract rss, atom, and other feeds from webpages',
+    version='1.1.0',
+    description='Find rss, atom, xml, and rdf feeds on webpages',
     long_description=long_description,
     author='Colin Carroll',
     author_email='ccarroll@mit.edu',
-    url='https://github.com/mitmedialab/feed_seeker',
+    url='https://github.com/mediacloud/feed_seeker',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -29,6 +29,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
     ],
     packages=find_packages(exclude=['test']),
     python_requires='>=3.5',
