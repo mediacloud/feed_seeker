@@ -374,7 +374,8 @@ class FeedSeeker(object):
 
     def find_feedly_feeds(self,
                           max_links : int = None,
-                          throttle : int = 5):
+                          throttle : int = 5,
+                          proxy: str = None):
         """This is the class method for the find_feedly_feeds method below. Check out the
         description there for more information on how to use the method
         """
@@ -399,7 +400,7 @@ class FeedSeeker(object):
             params = {}
             params['query'] = url
             params['count'] = 500
-            response = requests.get(search_url,params=params)
+            response = requests.get(search_url,params=params, proxies=proxy)
             if response.status_code == 200:
                 checked_queries.add(url)
                 feeds = response.json()
@@ -477,7 +478,8 @@ def generate_feed_urls(url, html=None, spider=0, max_time=None, max_links=None, 
 
 def find_feedly_feeds(url:str,
                       max_links : int = None,
-                      throttle : int = 5) -> Iterable[str]:
+                      throttle : int = 5,
+                      proxy: str = None) -> Iterable[str]:
     """Use feedly to discover feeds
     There are a few gotchas here. Sometimes searching with the top level domain
     attached doesn't yield as many results (e.g. washingtonpost.com) -- however,
@@ -487,5 +489,5 @@ def find_feedly_feeds(url:str,
     or other issues. The default throttle between requests is 5 seconds and can be
     set using the throttle parameter.
     """
-    for feed in FeedSeeker(url).find_feedly_feeds(max_links=max_links,throttle=throttle):
+    for feed in FeedSeeker(url).find_feedly_feeds(max_links=max_links,throttle=throttle,proxy=proxy):
         yield feed
