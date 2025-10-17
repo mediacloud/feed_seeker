@@ -42,6 +42,20 @@ def test_find_feed_max_time():
     feed_seeker.find_feed_url(url, max_time=max_time)
 
 
+def test_feeedly_feeds():
+    url = 'https://www.nytimes.com'
+    feeds_gen = feed_seeker.find_feedly_feeds(url)
+    feeds_list = list(feeds_gen)
+    some_expected_feeds = [
+        'http://www.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+        'http://www.nytimes.com/services/xml/rss/nyt/World.xml',
+        'http://www.nytimes.com/services/xml/rss/nyt/US.xml',
+        'http://www.nytimes.com/services/xml/rss/nyt/Sports.xml',
+    ]
+    for feed in some_expected_feeds:
+        assert feed in feeds_list
+
+
 @responses.activate
 def test_generate_feeds_max_time():
     max_time = 0.5
