@@ -159,7 +159,7 @@ class FeedSeeker(object):
     def soup(self):
         """BeautifulSoup representation of the data."""
         if self._soup is None:
-            self._soup = BeautifulSoup(self.html, 'lxml')
+            self._soup = BeautifulSoup(self.html, features='lxml-xml')
         return self._soup
 
     def clean_url(self):
