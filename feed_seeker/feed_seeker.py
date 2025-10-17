@@ -12,7 +12,7 @@ import sys
 from requests.adapters import HTTPAdapter
 from requests.exceptions import InvalidSchema, RetryError
 from urllib3.util.retry import Retry
-import publicsuffix
+import publicsuffix2
 import time
 
 @contextmanager
@@ -382,8 +382,8 @@ class FeedSeeker(object):
         search_url = "https://cloud.feedly.com/v3/search/feeds"
 
         # Fetch current public suffix list and determine root domain of url
-        psl = publicsuffix.fetch()
-        ps = publicsuffix.PublicSuffixList(psl)
+        psl = publicsuffix2.fetch()
+        ps = publicsuffix2.PublicSuffixList(psl)
         self.uri_root_domain = ps.get_public_suffix(self.url)
         self.uri_hostname = urlparse(self.url).hostname
         self.uri_domain_only = self.uri_root_domain.split('.', 1)[0]
