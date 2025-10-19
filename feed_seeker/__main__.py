@@ -3,12 +3,8 @@ from argparse import ArgumentParser
 
 from feed_seeker import find_feed_url, find_feedly_feeds, generate_feed_urls
 
-# TODO: Used for tests, remove
-# https://ici.radio-canada.ca/rss
-
 
 def main():
-    # TODO: Write tests for the CLI
     psr = ArgumentParser(
         prog="feed_seeker", description="Find the most likely feed URL for a webpage"
     )
@@ -39,43 +35,43 @@ def main():
     )
     args = psr.parse_args()
 
-    defaults = {action.dest: action.default for action in psr._actions}
 
-    feed_urls = []
+    feed_urls = []  # Create empty list as the default starting point
     if args.feedly:
-        feedly_ignored_args = ["html", "spider", "max-time", "all"]
+        # Feedly accepts less arguments. Warn users about ignored args.
+        defaults = {action.dest: action.default for action in psr._actions}
+        feedly_ignored_args = ["html", "spider", "max-time", "all", "max-links"]
         for arg_name in feedly_ignored_args:
             py_arg_name = arg_name.replace("-", "_")
             default_val = defaults[py_arg_name]
             current_val = getattr(args, py_arg_name)
             if default_val != current_val:
+                # Using print instead of warn to have clean 1-line messages at CLI
                 print(f"--{arg_name} is ignored when --feedly is used", file=sys.stderr)
-        feed_urls += list(find_feedly_feeds(args.url, max_links=args.max_links))
-    elif args.all:
-        feed_urls += list(
-            generate_feed_urls(
-                args.url,
-                html=args.html,
-                spider=args.spider,
-                max_time=args.max_time,
-                max_links=args.max_links,
-            )
-        )
+        feed_urls += list(find_feedly_feeds(args.url))
     else:
-        feed_url = find_feed_url(
-            args.url,
+        # The arguments are shared so we unpack them here
+        func_args = dict(  # Using dict so can be copy-pasted as args if need be
+            url=args.url,
             html=args.html,
             spider=args.spider,
             max_time=args.max_time,
             max_links=args.max_links,
         )
-        if feed_url is not None:
-            feed_urls.append(feed_url)
+        if args.all:
+            feed_urls += list(generate_feed_urls(**func_args))
+        else:
+            feed_url = find_feed_url(**func_args)
+            if feed_url is not None:
+                feed_urls.append(feed_url)
 
     if len(feed_urls) == 0:
+        # Using print + sys.exit to have clean 1-line messages at CLI
+        # and error code different from 0
         print("No feed found", file=sys.stderr)
         sys.exit(1)
 
+    # Print the feeds if any where found
     for feed_url in feed_urls:
         print(feed_url)
 
