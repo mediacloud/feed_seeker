@@ -36,5 +36,9 @@ test = [
     "pytest", "pytest-cov"
 ]
 
+[project.scripts]
+feedseeker = "feed_seeker.__main__:main"
+
+
 [project.urls]
 "Homepage" = "https://mediacloud.org"
