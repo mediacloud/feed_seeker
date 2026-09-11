@@ -35,7 +35,7 @@ def parse_output_lines(output):
 
 
 def test_main_single(run_main):
-    url = "https://ici.radio-canada.ca/rss"
+    url = "https://xkcd.com/"
     domain = get_domain(url)
 
     stdout, stderr, exit_code = run_main(url)
@@ -46,7 +46,7 @@ def test_main_single(run_main):
 
 
 def test_main_all(run_main):
-    url = "https://ici.radio-canada.ca/rss"
+    url = "https://xkcd.com/"
     domain = get_domain(url)
     max_links = 10
 
