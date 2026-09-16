@@ -7,17 +7,24 @@ name = "feed-seeker"
 version = "1.1.0"
 authors = [
     {name = "Colin Carroll", email = "ccarroll@mit.edu"},
+    {name = "Jason Baumgartner"},
+    {name = "Linas Valiukas"},
+    {name = "Thomas Vandal"},
+    {name = "Hal Roberts"},
+    {name = "Rahul Bhargava"},
+    {name = "Paige Gulley"},
+    {name = "Phil Budne"},
 ]
 description = "Find rss, atom, xml, and rdf feeds on webpages"
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 dependencies = [
@@ -41,4 +48,6 @@ feedseeker = "feed_seeker.__main__:main"
 
 
 [project.urls]
-"Homepage" = "https://mediacloud.org"
+Homepage = "https://mediacloud.org"
+Repository = "https://github.com/mediacloud/feed_seeker"
+Issues = "https://github.com/mediacloud/feed_seeker/issues"
