@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "feed-seeker"
-version = "1.1.0"
+version = "2.0.0"
 authors = [
     {name = "Colin Carroll", email = "ccarroll@mit.edu"},
     {name = "Jason Baumgartner"},
@@ -33,7 +33,7 @@ dependencies = [
     "requests>=2.18.4",
     "publicsuffix2>=2.20191221",
     "urllib3>=1.24.1",
-    "pytest>=4.5.0",
+    "pytest>=8.0.0",
     "responses>=0.10.6",
     "typing>=3.6.6"
 ]
